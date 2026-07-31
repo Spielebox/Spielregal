@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Spielregal" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>Spielregal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: #16241F; }
+
+  .sr-app {
+    font-family: 'Inter', sans-serif;
+    background: #16241F;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 12px;
+    box-sizing: border-box;
+  }
+  .sr-phone {
+    width: 100%;
+    max-width: 420px;
+    background: #1F3A34;
+    border-radius: 34px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 0 8px #0f1a17;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: min(860px, calc(100vh - 48px));
+    position: relative;
+    color: #EDE6D6;
+  }
+  .sr-island {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 22px;
+    background: #0f1a17;
+    border-radius: 14px;
+    z-index: 10;
+  }
+  .sr-display { font-family: 'Fraunces', serif; }
+  .sr-mono { font-family: 'Space Mono', monospace; }
+
+  .sr-screen { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .sr-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 38px 16px 12px 16px;
+    flex-shrink: 0;
+  }
+  .sr-topbar-title { font-size: 20px; font-weight: 700; letter-spacing: 0.2px; }
+  .sr-scroll { flex: 1; overflow-y: auto; padding: 0 16px 20px 16px; -webkit-overflow-scrolling: touch; }
+  .sr-detail { padding-top: 4px; }
+
+  .sr-searchbar {
+    display: flex; align-items: center; gap: 8px;
+    background: #16241F; border: 1px solid #33544c;
+    border-radius: 12px; padding: 10px 12px; margin-bottom: 12px;
+    color: #C9C2AE;
+  }
+  .sr-searchbar input {
+    background: transparent; border: none; outline: none;
+    color: #EDE6D6; font-size: 15px; width: 100%; font-family: inherit;
+  }
+  .sr-searchbar input::placeholder { color: #7C9088; }
+
+  .sr-filterRow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .sr-filterChip {
+    border: 1px solid #33544c; background: transparent; color: #C9C2AE;
+    border-radius: 999px; padding: 5px 11px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .sr-filterChip.active { background: var(--c, #D9B25D); border-color: transparent; color: #16241F; font-weight: 600; }
+
+  .sr-shelf { display: flex; flex-direction: column; gap: 10px; }
+
+  .sr-card {
+    display: flex; align-items: center; gap: 12px;
+    background: #26433C; border: none; border-radius: 12px;
+    padding: 10px 12px 10px 0; text-align: left; cursor: pointer;
+    position: relative; overflow: hidden; font-family: inherit; width: 100%; box-sizing: border-box;
+  }
+  .sr-card-spine { width: 6px; align-self: stretch; background: var(--spine); border-radius: 4px 0 0 4px; margin-right: 2px; }
+  .sr-card-thumb {
+    width: 48px; height: 48px; border-radius: 8px; background: #16241F;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #7C9088;
+    overflow: hidden;
+  }
+  .sr-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .sr-card-body { flex: 1; min-width: 0; }
+  .sr-card-title { font-size: 16px; font-weight: 600; color: #EDE6D6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sr-card-meta { font-size: 12px; color: #9db3ab; margin-top: 2px; }
+
+  .sr-seal {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+    background: #D9B25D; color: #16241F; font-weight: 700; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #16241F; margin-right: 10px;
+  }
+
+  .sr-chip { font-size: 11px; color: #16241F; font-weight: 600; padding: 3px 9px; border-radius: 999px; display: inline-block; }
+
+  .sr-emptyState { text-align: center; color: #9db3ab; padding: 50px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .sr-empty-hint { font-size: 12px; color: #7C9088; }
+
+  /* Formular */
+  .sr-form { display: flex; flex-direction: column; gap: 4px; padding-bottom: 24px; }
+  .sr-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #9db3ab; margin: 10px 0 4px 0; }
+  .sr-input, .sr-textarea {
+    background: #16241F; border: 1px solid #33544c; border-radius: 10px;
+    padding: 10px 12px; color: #EDE6D6; font-size: 15px; font-family: inherit; outline: none; width: 100%; box-sizing: border-box;
+  }
+  .sr-input:focus, .sr-textarea:focus { border-color: #D9B25D; }
+  .sr-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sr-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .sr-catgrid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .sr-catbtn {
+    border: 1px solid #33544c; background: transparent; color: #C9C2AE; border-radius: 999px;
+    padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .sr-catbtn.active { background: var(--c); border-color: transparent; color: #16241F; font-weight: 600; }
+  .sr-addrow { display: flex; gap: 8px; align-items: center; }
+  .sr-iconbtn {
+    background: #16241F; border: 1px solid #33544c; color: #EDE6D6; border-radius: 10px;
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;
+  }
+  .sr-chiprow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .sr-tagchip {
+    background: #16241F; border: 1px solid #33544c; border-radius: 999px; padding: 4px 10px; font-size: 12px;
+    display: flex; align-items: center; gap: 6px; color: #EDE6D6;
+  }
+  .sr-tagchip button { background: none; border: none; color: #9db3ab; cursor: pointer; display: flex; padding: 0; }
+  .sr-ratinglist { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .sr-ratingrow {
+    display: flex; align-items: center; gap: 8px; background: #16241F; border-radius: 8px; padding: 6px 10px; font-size: 13px;
+  }
+  .sr-ratingrow.static { justify-content: space-between; }
+  .sr-ratingrow button { margin-left: auto; background: none; border: none; color: #9db3ab; cursor: pointer; display: flex; padding: 0; }
+  .sr-ratingavg { align-self: flex-end; color: #D9B25D; font-size: 13px; font-weight: 700; }
+  .sr-formactions { display: flex; gap: 10px; margin-top: 20px; }
+
+  .sr-btn-primary, .sr-btn-ghost, .sr-btn-danger {
+    border-radius: 10px; padding: 11px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px; border: none; font-family: inherit;
+  }
+  .sr-btn-primary { background: #C1443C; color: #F7F3E9; flex: 1; }
+  .sr-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .sr-btn-ghost { background: transparent; border: 1px solid #33544c; color: #EDE6D6; flex: 1; }
+  .sr-btn-danger { background: transparent; border: 1px solid #C1443C; color: #C1443C; }
+  .sr-fullwidth { width: 100%; margin-top: 10px; box-sizing: border-box; }
+
+  .sr-divider { display: flex; align-items: center; text-align: center; color: #7C9088; font-size: 12px; margin: 18px 0 4px; }
+  .sr-divider::before, .sr-divider::after { content: ''; flex: 1; border-bottom: 1px solid #33544c; }
+  .sr-divider span { padding: 0 10px; }
+
+  .sr-resultlist { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+  .sr-resultrow {
+    display: flex; justify-content: space-between; background: #26433C; border: none; border-radius: 10px;
+    padding: 10px 12px; color: #EDE6D6; font-size: 14px; cursor: pointer; text-align: left; width: 100%; box-sizing: border-box; font-family: inherit;
+  }
+  .sr-dim { color: #9db3ab; }
+  .sr-error { color: #E0A199; font-size: 13px; margin-top: 10px; }
+
+  .sr-spin { animation: sr-spin 1s linear infinite; }
+  @keyframes sr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* Detail */
+  .sr-detail-hero { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .sr-detail-thumb {
+    width: 84px; height: 84px; border-radius: 12px; background: #16241F; border-left: 6px solid var(--spine);
+    display: flex; align-items: center; justify-content: center; color: #7C9088; overflow: hidden; flex-shrink: 0;
+  }
+  .sr-detail-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .sr-detail-title { font-size: 26px; margin: 4px 0 6px 0; line-height: 1.1; }
+  .sr-metaGrid { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+  .sr-metaItem { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #EDE6D6; }
+  .sr-metaItem svg { color: #9db3ab; flex-shrink: 0; }
+  .sr-section { margin-top: 18px; }
+  .sr-sectionTitle { display: flex; align-items: center; gap: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #9db3ab; margin-bottom: 8px; }
+  .sr-notes { font-size: 14px; line-height: 1.5; color: #EDE6D6; white-space: pre-wrap; }
+  .sr-detailactions { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
+  .sr-confirmRow { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
+  /* Heute */
+  .sr-today { align-items: center; display: flex; flex-direction: column; padding-top: 10px; }
+  .sr-today-lede { font-size: 15px; color: #EDE6D6; margin-bottom: 10px; }
+  .sr-stepper { display: flex; align-items: center; gap: 16px; background: #16241F; border-radius: 999px; padding: 8px 18px; }
+  .sr-stepper button { background: #26433C; border: none; color: #EDE6D6; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .sr-stepper span { min-width: 40px; text-align: center; font-size: 15px; }
+  .sr-diceBtn {
+    margin-top: 26px; background: #C1443C; color: #F7F3E9; border: none; border-radius: 20px;
+    width: 140px; height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 10px 30px rgba(193,68,60,0.35); font-family: inherit;
+  }
+  .sr-diceBtn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+  .sr-pickedCard { width: 100%; margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Tab bar */
+  .sr-tabbar {
+    display: flex; border-top: 1px solid #26433C; background: #1a322c; flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom, 6px);
+  }
+  .sr-tabbtn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 10px 0 8px 0; background: none; border: none; color: #7C9088; cursor: pointer; font-size: 11px; font-family: inherit;
+  }
+  .sr-tabbtn.active { color: #D9B25D; }
+
+  .sr-offlineNote { font-size: 11px; color: #7C9088; text-align: center; padding: 6px 16px 0 16px; }
+
+  /* ---------- iPad / größere Bildschirme ---------- */
+  @media (min-width: 700px) {
+    .sr-app { padding: 40px 24px; }
+    .sr-phone {
+      max-width: 760px;
+      height: min(940px, calc(100vh - 80px));
+      border-radius: 20px;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.4);
+    }
+    .sr-island { display: none; }
+    .sr-topbar { padding: 24px 24px 14px 24px; }
+    .sr-scroll { padding: 0 24px 24px 24px; }
+    .sr-shelf { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .sr-form { max-width: 520px; margin: 0 auto; width: 100%; }
+    .sr-detail { max-width: 560px; margin: 0 auto; width: 100%; }
+    .sr-today { max-width: 520px; margin: 0 auto; width: 100%; }
+    .sr-pickedCard { max-width: 420px; margin: 30px auto 0; }
+    .sr-diceBtn { width: 160px; height: 160px; font-size: 15px; }
+    .sr-tabbar { max-width: 760px; }
+  }
+  @media (min-width: 1000px) {
+    .sr-phone { max-width: 940px; }
+    .sr-shelf { grid-template-columns: repeat(3, 1fr); }
+    .sr-tabbar { max-width: 940px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ---------- Konstanten ---------- */
+
+var CATEGORY_COLORS = {
+  'Strategiespiel': '#6B7F5B', 'Familienspiel': '#C1443C', 'Partyspiel': '#D9B25D',
+  'Kennerspiel': '#4A6FA5', 'Kartenspiel': '#8B5E3C', 'Kooperativ': '#5B8A8A',
+  'Kinderspiel': '#C98A4B', 'Sonstiges': '#7A7266',
+};
+var CATEGORIES = Object.keys(CATEGORY_COLORS);
+var STORAGE_KEY = 'spielregal_games';
+
+/* ---------- Hilfsfunktionen ---------- */
+
+function uid() { return 'g_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
+
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function avgRating(ratings) {
+  if (!ratings || ratings.length === 0) return null;
+  var sum = ratings.reduce(function (s, r) { return s + Number(r.score); }, 0);
+  return Math.round((sum / ratings.length) * 10) / 10;
+}
+
+function blankGame() {
+  return {
+    id: null, title: '', minPlayers: '', maxPlayers: '', optimalPlayers: '', duration: '',
+    publisher: '', year: '', category: 'Sonstiges', location: '', expansions: [],
+    rulesNotes: '', imageUrl: '', bggId: null, ratings: [],
+  };
+}
+
+function iconSvg(name, size, extraClass) {
+  size = size || 16; extraClass = extraClass || '';
+  var attrs = 'width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="' + extraClass + '"';
+  var map = {
+    search: '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/>',
+    dices: '<rect x="3" y="3" width="8" height="8" rx="2"/><circle cx="7" cy="7" r="0.6" fill="currentColor" stroke="none"/><rect x="13" y="13" width="8" height="8" rx="2"/><circle cx="15.3" cy="15.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="18.7" cy="18.7" r="0.6" fill="currentColor" stroke="none"/><circle cx="15.3" cy="18.7" r="0.6" fill="currentColor" stroke="none"/><circle cx="18.7" cy="15.3" r="0.6" fill="currentColor" stroke="none"/>',
+    grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+    chevronLeft: '<polyline points="15 18 9 12 15 6"/>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    star: '<polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/>',
+    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.5 2.5-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.3"/><path d="M21 20c0-2.7-1.6-4.8-3.8-5.6"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>',
+    building: '<rect x="5" y="3" width="14" height="18" rx="1"/><line x1="9" y1="7" x2="9" y2="7.01"/><line x1="15" y1="7" x2="15" y2="7.01"/><line x1="9" y1="11" x2="9" y2="11.01"/><line x1="15" y1="11" x2="15" y2="11.01"/><line x1="9" y1="15" x2="15" y2="15"/>',
+    pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    layers: '<polygon points="12 3 21 8 12 13 3 8 12 3"/><polyline points="3 13 12 18 21 13"/>',
+    loader: '<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.9" y1="4.9" x2="7.8" y2="7.8"/><line x1="16.2" y1="16.2" x2="19.1" y2="19.1"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.9" y1="19.1" x2="7.8" y2="16.2"/><line x1="16.2" y1="7.8" x2="19.1" y2="4.9"/>',
+    trash: '<polyline points="4 7 20 7"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>',
+    tag: '<path d="M12 2l9 9-9 9-9-9z"/><circle cx="12" cy="8.5" r="1.1" fill="currentColor" stroke="none"/>',
+    shuffle: '<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="16 21 21 21 21 16"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    book: '<path d="M4 5c2-1 5-1 7 0v14c-2-1-5-1-7 0z"/><path d="M20 5c-2-1-5-1-7 0v14c2-1 5-1 7 0z"/>',
+    pencil: '<path d="M17 3l4 4L7 21H3v-4z"/>',
+    minus: '<line x1="5" y1="12" x2="19" y2="12"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+  };
+  return '<svg ' + attrs + '>' + (map[name] || '') + '</svg>';
+}
+
+/* ---------- BGG XML API (nur fürs Suchen, braucht Internet) ---------- */
+
+function bggSearch(query) {
+  return fetch('https://boardgamegeek.com/xmlapi2/search?query=' + encodeURIComponent(query) + '&type=boardgame')
+    .then(function (res) { if (!res.ok) throw new Error('network'); return res.text(); })
+    .then(function (text) {
+      var doc = new DOMParser().parseFromString(text, 'text/xml');
+      if (doc.querySelector('parsererror')) throw new Error('parse');
+      var items = Array.from(doc.getElementsByTagName('item'));
+      return items.slice(0, 15).map(function (it) {
+        var nameEl = it.querySelector('name[type="primary"]') || it.querySelector('name');
+        var yearEl = it.querySelector('yearpublished');
+        return { id: it.getAttribute('id'), title: nameEl ? nameEl.getAttribute('value') : 'Unbekannt', year: yearEl ? yearEl.getAttribute('value') : null };
+      });
+    });
+}
+
+function bggThing(id) {
+  return fetch('https://boardgamegeek.com/xmlapi2/thing?id=' + id + '&stats=1')
+    .then(function (res) { if (!res.ok) throw new Error('network'); return res.text(); })
+    .then(function (text) {
+      var doc = new DOMParser().parseFromString(text, 'text/xml');
+      if (doc.querySelector('parsererror')) throw new Error('parse');
+      var item = doc.querySelector('item');
+      if (!item) throw new Error('notfound');
+      var nameEl = item.querySelector('name[type="primary"]') || item.querySelector('name');
+      var publisherEl = item.querySelector('link[type="boardgamepublisher"]');
+      var categoryEl = item.querySelector('link[type="boardgamecategory"]');
+      var image = item.querySelector('image');
+      var get = function (sel) { var el = item.querySelector(sel); return el ? el.getAttribute('value') : ''; };
+
+      var optimalPlayers = '';
+      var poll = Array.from(item.querySelectorAll('poll')).find(function (pl) { return pl.getAttribute('name') === 'suggested_numplayers'; });
+      if (poll && Number(poll.getAttribute('totalvotes')) > 0) {
+        var bestCount = null, bestVotes = -1;
+        Array.from(poll.querySelectorAll('results')).forEach(function (res2) {
+          var numplayers = res2.getAttribute('numplayers');
+          if (!/^\d+$/.test(numplayers)) return;
+          var bestResult = Array.from(res2.querySelectorAll('result')).find(function (r) { return r.getAttribute('value') === 'Best'; });
+          var votes = bestResult ? Number(bestResult.getAttribute('numvotes')) : 0;
+          if (votes > bestVotes) { bestVotes = votes; bestCount = numplayers; }
+        });
+        if (bestVotes > 0) optimalPlayers = bestCount;
+      }
+
+      return {
+        title: nameEl ? nameEl.getAttribute('value') : '', year: get('yearpublished'),
+        minPlayers: get('minplayers'), maxPlayers: get('maxplayers'), optimalPlayers: optimalPlayers,
+        duration: get('playingtime'), publisher: publisherEl ? publisherEl.getAttribute('value') : '',
+        category: categoryEl ? categoryEl.getAttribute('value') : '', imageUrl: image ? image.textContent : '', bggId: id,
+      };
+    });
+}
+
+function mapBggCategory(bggCategory) {
+  if (!bggCategory) return 'Sonstiges';
+  var c = bggCategory.toLowerCase();
+  if (c.indexOf('party') !== -1) return 'Partyspiel';
+  if (c.indexOf('card') !== -1) return 'Kartenspiel';
+  if (c.indexOf('children') !== -1 || c.indexOf('kids') !== -1) return 'Kinderspiel';
+  if (c.indexOf('cooperative') !== -1 || c.indexOf('co-op') !== -1) return 'Kooperativ';
+  if (c.indexOf('strategy') !== -1 || c.indexOf('wargame') !== -1 || c.indexOf('economic') !== -1) return 'Strategiespiel';
+  return 'Familienspiel';
+}
+
+/* ---------- Anwendungszustand ---------- */
+
+var games = [];
+var loaded = false;
+var tab = 'shelf';
+var selectedId = null;
+
+function loadGames() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) games = JSON.parse(raw);
+  } catch (e) { console.error('Konnte gespeicherte Daten nicht lesen', e); }
+  loaded = true;
+}
+function persist(next) {
+  games = next;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(games)); } catch (e) { console.error('Speichern fehlgeschlagen', e); }
+}
+function addGame(g) { persist(games.concat([g])); }
+function updateGameInList(g) { persist(games.map(function (x) { return x.id === g.id ? g : x; })); }
+function deleteGameFromList(id) { persist(games.filter(function (x) { return x.id !== id; })); }
+
+function root() { return document.getElementById('root'); }
+
+/* ---------- kleine Bausteine ---------- */
+
+function sealBadgeHtml(value) {
+  if (value == null) return '';
+  return '<div class="sr-seal sr-mono" title="Durchschnittsbewertung">' + value.toFixed(1) + '</div>';
+}
+function categoryChipHtml(category) {
+  var color = CATEGORY_COLORS[category] || CATEGORY_COLORS['Sonstiges'];
+  return '<span class="sr-chip" style="background:' + color + '">' + escapeHtml(category) + '</span>';
+}
+function gameCardHtml(g) {
+  var avg = avgRating(g.ratings);
+  var color = CATEGORY_COLORS[g.category] || CATEGORY_COLORS['Sonstiges'];
+  var meta = '';
+  if (g.minPlayers && g.maxPlayers) meta += g.minPlayers + '\u2013' + g.maxPlayers + ' Sp.';
+  if (g.optimalPlayers) meta += ' (opt. ' + g.optimalPlayers + ')';
+  if (g.duration) meta += ' \u00b7 ' + g.duration + ' min';
+  var thumb = g.imageUrl ? '<img src="' + escapeHtml(g.imageUrl) + '" alt="" />' : iconSvg('book', 28);
+  return (
+    '<button class="sr-card" data-open-game="' + g.id + '" style="--spine:' + color + '">' +
+      '<div class="sr-card-spine"></div>' +
+      '<div class="sr-card-thumb">' + thumb + '</div>' +
+      '<div class="sr-card-body">' +
+        '<div class="sr-card-title sr-display">' + escapeHtml(g.title || 'Ohne Titel') + '</div>' +
+        '<div class="sr-card-meta sr-mono">' + meta + '</div>' +
+      '</div>' +
+      sealBadgeHtml(avg) +
+    '</button>'
+  );
+}
+
+/* ---------- Formular (gemeinsam für Hinzufügen & Bearbeiten) ---------- */
+
+function mountGameForm(container, initial, opts) {
+  var draft = {
+    id: initial.id, category: initial.category || 'Sonstiges',
+    expansions: (initial.expansions || []).slice(), ratings: (initial.ratings || []).slice(),
+    imageUrl: initial.imageUrl || '', bggId: initial.bggId || null,
+  };
+
+  function chipsHtml() {
+    var html = '';
+    if (draft.expansions.length > 0) {
+      html += '<div class="sr-chiprow" id="fExpansions">';
+      draft.expansions.forEach(function (e, i) {
+        html += '<span class="sr-tagchip">' + escapeHtml(e) + '<button type="button" data-remove-exp="' + i + '">' + iconSvg('x', 12) + '</button></span>';
+      });
+      html += '</div>';
+    } else html += '<div class="sr-chiprow" id="fExpansions"></div>';
+    return html;
+  }
+  function ratingsHtml() {
+    var html = '<div class="sr-ratinglist" id="fRatings">';
+    draft.ratings.forEach(function (r) {
+      html += '<div class="sr-ratingrow"><span class="sr-mono">' + iconSvg('star', 14) + ' ' + escapeHtml(r.name) + ': ' + r.score + '</span><button type="button" data-remove-rating="' + escapeHtml(r.name) + '">' + iconSvg('x', 12) + '</button></div>';
+    });
+    var avg = avgRating(draft.ratings);
+    if (avg != null) html += '<div class="sr-ratingavg sr-mono">\u00d8 ' + avg.toFixed(1) + '</div>';
+    html += '</div>';
+    return html;
+  }
+  function categoriesHtml() {
+    return CATEGORIES.map(function (c) {
+      return '<button type="button" class="sr-catbtn' + (draft.category === c ? ' active' : '') + '" style="--c:' + CATEGORY_COLORS[c] + '" data-set-cat="' + c + '">' + c + '</button>';
+    }).join('');
+  }
+
+  container.innerHTML =
+    '<div class="sr-form">' +
+      '<label class="sr-label">Titel</label>' +
+      '<input class="sr-input" id="fTitle" value="' + escapeHtml(initial.title) + '" placeholder="z.B. Ark Nova" />' +
+      '<div class="sr-error" id="fTitleError" style="display:none">Bitte einen Titel eingeben.</div>' +
+
+      '<div class="sr-row-3">' +
+        '<div><label class="sr-label">Spieler min.</label><input class="sr-input sr-numonly" id="fMin" value="' + escapeHtml(initial.minPlayers) + '" inputmode="numeric" placeholder="1" /></div>' +
+        '<div><label class="sr-label">Spieler max.</label><input class="sr-input sr-numonly" id="fMax" value="' + escapeHtml(initial.maxPlayers) + '" inputmode="numeric" placeholder="4" /></div>' +
+        '<div><label class="sr-label">Optimal</label><input class="sr-input sr-numonly" id="fOptimal" value="' + escapeHtml(initial.optimalPlayers) + '" inputmode="numeric" placeholder="3" /></div>' +
+      '</div>' +
+
+      '<div class="sr-row-2">' +
+        '<div><label class="sr-label">Dauer (Min.)</label><input class="sr-input sr-numonly" id="fDuration" value="' + escapeHtml(initial.duration) + '" inputmode="numeric" placeholder="60" /></div>' +
+        '<div><label class="sr-label">Jahr</label><input class="sr-input sr-numonly" id="fYear" value="' + escapeHtml(initial.year) + '" inputmode="numeric" placeholder="2021" /></div>' +
+      '</div>' +
+
+      '<label class="sr-label">Verlag</label>' +
+      '<input class="sr-input" id="fPublisher" value="' + escapeHtml(initial.publisher) + '" placeholder="z.B. Feuerland" />' +
+
+      '<label class="sr-label">Kategorie</label>' +
+      '<div class="sr-catgrid" id="fCategories">' + categoriesHtml() + '</div>' +
+
+      '<label class="sr-label">Standort im Regal</label>' +
+      '<input class="sr-input" id="fLocation" value="' + escapeHtml(initial.location) + '" placeholder="z.B. Wohnzimmer, Regal 2" />' +
+
+      '<label class="sr-label">Erweiterungen</label>' +
+      '<div class="sr-addrow"><input class="sr-input" id="fExpInput" placeholder="Name der Erweiterung" /><button type="button" class="sr-iconbtn" id="fExpAdd">' + iconSvg('plus', 18) + '</button></div>' +
+      chipsHtml() +
+
+      '<label class="sr-label">Regel-Notizen</label>' +
+      '<textarea class="sr-textarea" id="fNotes" rows="3" placeholder="Eigene Hinweise, Hausregeln, Setup-Tipps …">' + escapeHtml(initial.rulesNotes) + '</textarea>' +
+
+      '<label class="sr-label">Bewertungen</label>' +
+      '<div class="sr-addrow">' +
+        '<input class="sr-input" id="fRatingName" style="flex:2" placeholder="Name" />' +
+        '<input class="sr-input sr-numonly" id="fRatingScore" style="flex:1" inputmode="numeric" placeholder="1\u201310" />' +
+        '<button type="button" class="sr-iconbtn" id="fRatingAdd">' + iconSvg('plus', 18) + '</button>' +
+      '</div>' +
+      ratingsHtml() +
+
+      '<div class="sr-formactions">' +
+        (opts.onCancel ? '<button type="button" class="sr-btn-ghost" id="fCancel">Abbrechen</button>' : '') +
+        '<button type="button" class="sr-btn-primary" id="fSave">' + iconSvg('check', 16) + ' ' + (opts.saveLabel || 'Speichern') + '</button>' +
+      '</div>' +
+    '</div>';
+
+  // Nur Ziffern in Zahlenfeldern erlauben
+  Array.from(container.querySelectorAll('.sr-numonly')).forEach(function (inp) {
+    inp.addEventListener('input', function () { inp.value = inp.value.replace(/\D/g, ''); });
+  });
+
+  container.querySelector('#fCategories').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-set-cat]');
+    if (!btn) return;
+    draft.category = btn.getAttribute('data-set-cat');
+    Array.from(container.querySelectorAll('#fCategories .sr-catbtn')).forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-set-cat') === draft.category);
+    });
+  });
+
+  function rerenderExpansions() {
+    container.querySelector('#fExpansions').outerHTML = chipsHtml();
+    wireExpansionRemovers();
+  }
+  function wireExpansionRemovers() {
+    container.querySelector('#fExpansions').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-remove-exp]');
+      if (!btn) return;
+      var idx = Number(btn.getAttribute('data-remove-exp'));
+      draft.expansions.splice(idx, 1);
+      rerenderExpansions();
+    });
+  }
+  wireExpansionRemovers();
+
+  container.querySelector('#fExpAdd').addEventListener('click', function () {
+    var inp = container.querySelector('#fExpInput');
+    var v = inp.value.trim();
+    if (!v) return;
+    draft.expansions.push(v);
+    inp.value = '';
+    rerenderExpansions();
+  });
+  container.querySelector('#fExpInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); container.querySelector('#fExpAdd').click(); }
+  });
+
+  function rerenderRatings() {
+    container.querySelector('#fRatings').outerHTML = ratingsHtml();
+    wireRatingRemovers();
+  }
+  function wireRatingRemovers() {
+    container.querySelector('#fRatings').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-remove-rating]');
+      if (!btn) return;
+      var name = btn.getAttribute('data-remove-rating');
+      draft.ratings = draft.ratings.filter(function (r) { return r.name !== name; });
+      rerenderRatings();
+    });
+  }
+  wireRatingRemovers();
+
+  container.querySelector('#fRatingAdd').addEventListener('click', function () {
+    var nameInp = container.querySelector('#fRatingName');
+    var scoreInp = container.querySelector('#fRatingScore');
+    var name = nameInp.value.trim();
+    var score = Number(scoreInp.value);
+    if (!name || !score || score < 1 || score > 10) return;
+    draft.ratings = draft.ratings.filter(function (r) { return r.name.toLowerCase() !== name.toLowerCase(); });
+    draft.ratings.push({ name: name, score: score });
+    nameInp.value = ''; scoreInp.value = '';
+    rerenderRatings();
+  });
+
+  if (opts.onCancel) container.querySelector('#fCancel').addEventListener('click', opts.onCancel);
+
+  container.querySelector('#fSave').addEventListener('click', function () {
+    var title = container.querySelector('#fTitle').value.trim();
+    if (!title) { container.querySelector('#fTitleError').style.display = 'block'; return; }
+    var game = {
+      id: draft.id || uid(),
+      title: title,
+      minPlayers: container.querySelector('#fMin').value,
+      maxPlayers: container.querySelector('#fMax').value,
+      optimalPlayers: container.querySelector('#fOptimal').value,
+      duration: container.querySelector('#fDuration').value,
+      year: container.querySelector('#fYear').value,
+      publisher: container.querySelector('#fPublisher').value,
+      category: draft.category,
+      location: container.querySelector('#fLocation').value,
+      expansions: draft.expansions,
+      rulesNotes: container.querySelector('#fNotes').value,
+      imageUrl: draft.imageUrl,
+      bggId: draft.bggId,
+      ratings: draft.ratings,
+    };
+    opts.onSave(game);
+  });
+}
+
+/* ---------- Regal (Katalog) ---------- */
+
+var shelfQuery = '';
+var shelfCat = 'Alle';
+
+function mountShelfScreen(container) {
+  var filterChips = '<button class="sr-filterChip' + (shelfCat === 'Alle' ? ' active' : '') + '" data-set-filter="Alle">Alle</button>' +
+    CATEGORIES.map(function (c) {
+      return '<button class="sr-filterChip' + (shelfCat === c ? ' active' : '') + '" style="--c:' + CATEGORY_COLORS[c] + '" data-set-filter="' + c + '">' + c + '</button>';
+    }).join('');
+
+  container.innerHTML =
+    '<div class="sr-screen">' +
+      '<div class="sr-topbar"><span class="sr-display sr-topbar-title">Spielregal</span></div>' +
+      '<div class="sr-scroll">' +
+        '<div class="sr-searchbar">' + iconSvg('search', 16) + '<input id="shelfSearchInput" placeholder="Spiel suchen …" value="' + escapeHtml(shelfQuery) + '" /></div>' +
+        '<div class="sr-filterRow" id="shelfFilterRow">' + filterChips + '</div>' +
+        '<div id="shelfList"></div>' +
+      '</div>' +
+    '</div>';
+
+  renderShelfList(container);
+
+  container.querySelector('#shelfSearchInput').addEventListener('input', function (e) {
+    shelfQuery = e.target.value;
+    renderShelfList(container);
+  });
+  container.querySelector('#shelfFilterRow').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-set-filter]');
+    if (!btn) return;
+    shelfCat = btn.getAttribute('data-set-filter');
+    mountShelfScreen(container);
+  });
+}
+
+function renderShelfList(container) {
+  var listEl = container.querySelector('#shelfList');
+  var filtered = games.filter(function (g) {
+    var matchesQuery = g.title.toLowerCase().indexOf(shelfQuery.toLowerCase()) !== -1;
+    var matchesCat = shelfCat === 'Alle' || g.category === shelfCat;
+    return matchesQuery && matchesCat;
+  }).sort(function (a, b) { return a.title.localeCompare(b.title); });
+
+  if (games.length === 0) {
+    listEl.innerHTML = '<div class="sr-emptyState">' + iconSvg('book', 40) + '<p>Dein Regal ist noch leer.</p><p class="sr-empty-hint">Wechsle unten zu \u201eHinzuf\u00fcgen\u201c, um dein erstes Spiel einzutragen.</p></div>';
+  } else if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="sr-emptyState"><p>Kein Spiel gefunden.</p></div>';
+  } else {
+    listEl.innerHTML = '<div class="sr-shelf">' + filtered.map(gameCardHtml).join('') + '</div>';
+  }
+  Array.from(listEl.querySelectorAll('[data-open-game]')).forEach(function (btn) {
+    btn.addEventListener('click', function () { selectedId = btn.getAttribute('data-open-game'); renderApp(); });
+  });
+}
+
+/* ---------- Hinzufügen ---------- */
+
+var addMode = 'search';
+var addQuery = '';
+var addResults = [];
+var addLoading = false;
+var addError = '';
+var addPrefill = blankGame();
+
+function mountAddScreen(container) {
+  if (addMode === 'form') {
+    container.innerHTML =
+      '<div class="sr-screen">' +
+        '<div class="sr-topbar"><button class="sr-iconbtn" id="addBack">' + iconSvg('chevronLeft', 20) + '</button><span class="sr-display sr-topbar-title">Neues Spiel</span><span style="width:36px"></span></div>' +
+        '<div class="sr-scroll" id="addFormHost"></div>' +
+      '</div>';
+    container.querySelector('#addBack').addEventListener('click', function () { addMode = 'search'; mountAddScreen(container); });
+    mountGameForm(container.querySelector('#addFormHost'), addPrefill, {
+      onCancel: function () { addMode = 'search'; mountAddScreen(container); },
+      saveLabel: 'Ins Regal stellen',
+      onSave: function (game) {
+        addGame(game);
+        addMode = 'search'; addQuery = ''; addResults = []; addPrefill = blankGame();
+        mountAddScreen(container);
+      },
+    });
+    return;
+  }
+
+  container.innerHTML =
+    '<div class="sr-screen">' +
+      '<div class="sr-topbar"><span class="sr-display sr-topbar-title">Hinzuf\u00fcgen</span></div>' +
+      '<div class="sr-scroll">' +
+        '<div class="sr-searchbar">' + iconSvg('search', 16) + '<input id="addSearchInput" placeholder="Titel bei BoardGameGeek suchen …" value="' + escapeHtml(addQuery) + '" /></div>' +
+        '<button class="sr-btn-primary sr-fullwidth" id="addSearchBtn" ' + (addLoading ? 'disabled' : '') + '>' + (addLoading ? iconSvg('loader', 16, 'sr-spin') : iconSvg('search', 16)) + ' Durchsuchen</button>' +
+        (addError ? '<p class="sr-error">' + escapeHtml(addError) + '</p>' : '') +
+        (addResults.length > 0 ? '<div class="sr-resultlist" id="addResultList">' + addResults.map(function (r) {
+          return '<button class="sr-resultrow" data-pick-result="' + r.id + '"><span>' + escapeHtml(r.title) + '</span>' + (r.year ? '<span class="sr-mono sr-dim">' + escapeHtml(r.year) + '</span>' : '') + '</button>';
+        }).join('') + '</div>' : '') +
+        '<div class="sr-divider"><span>oder</span></div>' +
+        '<button class="sr-btn-ghost sr-fullwidth" id="addManualBtn">' + iconSvg('plus', 16) + ' Manuell anlegen</button>' +
+      '</div>' +
+    '</div>';
+
+  container.querySelector('#addSearchInput').addEventListener('input', function (e) { addQuery = e.target.value; });
+  container.querySelector('#addSearchInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') runAddSearch(container); });
+  container.querySelector('#addSearchBtn').addEventListener('click', function () { runAddSearch(container); });
+  container.querySelector('#addManualBtn').addEventListener('click', function () { addPrefill = blankGame(); addMode = 'form'; mountAddScreen(container); });
+
+  if (addResults.length > 0) {
+    container.querySelector('#addResultList').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-pick-result]');
+      if (!btn) return;
+      pickAddResult(container, btn.getAttribute('data-pick-result'));
+    });
+  }
+}
+
+function runAddSearch(container) {
+  if (!addQuery.trim()) return;
+  addLoading = true; addError = ''; addResults = [];
+  mountAddScreen(container);
+  bggSearch(addQuery.trim()).then(function (r) {
+    addResults = r;
+    if (r.length === 0) addError = 'Keine Treffer bei BoardGameGeek. Du kannst das Spiel manuell anlegen.';
+  }).catch(function () {
+    addError = 'BoardGameGeek ist gerade nicht erreichbar (Internet n\u00f6tig). Du kannst das Spiel manuell anlegen.';
+  }).finally(function () {
+    addLoading = false;
+    mountAddScreen(container);
+  });
+}
+
+function pickAddResult(container, id) {
+  addLoading = true; addError = '';
+  mountAddScreen(container);
+  bggThing(id).then(function (details) {
+    addPrefill = Object.assign(blankGame(), {
+      title: details.title, year: details.year, minPlayers: details.minPlayers, maxPlayers: details.maxPlayers,
+      optimalPlayers: details.optimalPlayers, duration: details.duration, publisher: details.publisher,
+      category: mapBggCategory(details.category), imageUrl: details.imageUrl, bggId: details.bggId,
+    });
+    addMode = 'form';
+  }).catch(function () {
+    addError = 'Details konnten nicht geladen werden. Du kannst das Spiel manuell anlegen.';
+  }).finally(function () {
+    addLoading = false;
+    mountAddScreen(container);
+  });
+}
+
+/* ---------- Heute spielen ---------- */
+
+var todayPlayers = 0;
+var todayPicked = null;
+
+function mountTodayScreen(container) {
+  var pool = todayPlayers === 0 ? games : games.filter(function (g) {
+    var min = Number(g.minPlayers) || 1, max = Number(g.maxPlayers) || 99;
+    return todayPlayers >= min && todayPlayers <= max;
+  });
+
+  container.innerHTML =
+    '<div class="sr-screen">' +
+      '<div class="sr-topbar"><span class="sr-display sr-topbar-title">Heute spielen</span></div>' +
+      '<div class="sr-scroll sr-today">' +
+        '<p class="sr-today-lede">Wie viele Spieler seid ihr?</p>' +
+        '<div class="sr-stepper"><button id="todayMinus">' + iconSvg('minus', 16) + '</button><span class="sr-mono">' + (todayPlayers === 0 ? 'egal' : todayPlayers) + '</span><button id="todayPlus">' + iconSvg('plus', 16) + '</button></div>' +
+        '<p class="sr-empty-hint" style="margin-top:4px">' + (todayPlayers === 0 ? pool.length + ' Spiele im Regal' : pool.length + ' passende Spiele') + '</p>' +
+        '<button class="sr-diceBtn" id="todayRoll" ' + (pool.length === 0 ? 'disabled' : '') + '>' + iconSvg('dices', 28) + '<span>W\u00fcrfeln</span></button>' +
+        (pool.length === 0 && games.length > 0 ? '<p class="sr-error">Kein Spiel im Regal passt zu ' + todayPlayers + ' Spielern.</p>' : '') +
+        (todayPicked ? '<div class="sr-pickedCard" id="todayPickedCard">' + gameCardHtml(todayPicked) + '<button class="sr-btn-ghost sr-fullwidth" id="todayRerollBtn">' + iconSvg('shuffle', 15) + ' Nochmal w\u00fcrfeln</button></div>' : '') +
+      '</div>' +
+    '</div>';
+
+  container.querySelector('#todayMinus').addEventListener('click', function () { todayPlayers = Math.max(0, todayPlayers - 1); mountTodayScreen(container); });
+  container.querySelector('#todayPlus').addEventListener('click', function () { todayPlayers = Math.min(20, todayPlayers + 1); mountTodayScreen(container); });
+  var rollBtn = container.querySelector('#todayRoll');
+  rollBtn.addEventListener('click', function () { rollToday(container, pool); });
+  if (todayPicked) {
+    container.querySelector('#todayRerollBtn').addEventListener('click', function () { rollToday(container, pool); });
+    var openBtn = container.querySelector('#todayPickedCard [data-open-game]');
+    if (openBtn) openBtn.addEventListener('click', function () { selectedId = todayPicked.id; renderApp(); });
+  }
+}
+function rollToday(container, pool) {
+  if (pool.length === 0) return;
+  todayPicked = pool[Math.floor(Math.random() * pool.length)];
+  mountTodayScreen(container);
+}
+
+/* ---------- Detailansicht ---------- */
+
+var detailEditing = false;
+var detailConfirmDelete = false;
+
+function mountDetailScreen(container) {
+  var game = games.find(function (g) { return g.id === selectedId; });
+  if (!game) { selectedId = null; renderApp(); return; }
+
+  if (detailEditing) {
+    container.innerHTML =
+      '<div class="sr-screen">' +
+        '<div class="sr-topbar"><button class="sr-iconbtn" id="editBack">' + iconSvg('chevronLeft', 20) + '</button><span class="sr-display sr-topbar-title">Bearbeiten</span><span style="width:36px"></span></div>' +
+        '<div class="sr-scroll" id="editFormHost"></div>' +
+      '</div>';
+    container.querySelector('#editBack').addEventListener('click', function () { detailEditing = false; mountDetailScreen(container); });
+    mountGameForm(container.querySelector('#editFormHost'), game, {
+      onCancel: function () { detailEditing = false; mountDetailScreen(container); },
+      saveLabel: 'Änderungen speichern',
+      onSave: function (updated) { updateGameInList(updated); detailEditing = false; mountDetailScreen(container); },
+    });
+    return;
+  }
+
+  var avg = avgRating(game.ratings);
+  var color = CATEGORY_COLORS[game.category] || CATEGORY_COLORS['Sonstiges'];
+  var thumb = game.imageUrl ? '<img src="' + escapeHtml(game.imageUrl) + '" alt="" />' : iconSvg('book', 40);
+
+  var metaGrid = '';
+  if (game.minPlayers || game.maxPlayers) metaGrid += '<div class="sr-metaItem">' + iconSvg('users', 16) + '<span class="sr-mono">' + escapeHtml(game.minPlayers) + '\u2013' + escapeHtml(game.maxPlayers) + ' Spieler</span></div>';
+  if (game.optimalPlayers) metaGrid += '<div class="sr-metaItem">' + iconSvg('target', 16) + '<span class="sr-mono">optimal: ' + escapeHtml(game.optimalPlayers) + ' Spieler</span></div>';
+  if (game.duration) metaGrid += '<div class="sr-metaItem">' + iconSvg('clock', 16) + '<span class="sr-mono">' + escapeHtml(game.duration) + ' Min.</span></div>';
+  if (game.year) metaGrid += '<div class="sr-metaItem">' + iconSvg('tag', 16) + '<span class="sr-mono">' + escapeHtml(game.year) + '</span></div>';
+  if (game.publisher) metaGrid += '<div class="sr-metaItem">' + iconSvg('building', 16) + '<span>' + escapeHtml(game.publisher) + '</span></div>';
+  if (game.location) metaGrid += '<div class="sr-metaItem">' + iconSvg('pin', 16) + '<span>' + escapeHtml(game.location) + '</span></div>';
+
+  var expansionsSection = '';
+  if (game.expansions && game.expansions.length > 0) {
+    expansionsSection = '<div class="sr-section"><div class="sr-sectionTitle">' + iconSvg('layers', 15) + ' Erweiterungen</div><div class="sr-chiprow">' +
+      game.expansions.map(function (e) { return '<span class="sr-tagchip">' + escapeHtml(e) + '</span>'; }).join('') + '</div></div>';
+  }
+  var notesSection = '';
+  if (game.rulesNotes) {
+    notesSection = '<div class="sr-section"><div class="sr-sectionTitle">' + iconSvg('book', 15) + ' Regel-Notizen</div><p class="sr-notes">' + escapeHtml(game.rulesNotes) + '</p></div>';
+  }
+  var ratingsSection = '<div class="sr-section"><div class="sr-sectionTitle">' + iconSvg('star', 15) + ' Bewertungen</div>';
+  if (game.ratings && game.ratings.length > 0) {
+    ratingsSection += '<div class="sr-ratinglist">' + game.ratings.map(function (r) {
+      return '<div class="sr-ratingrow static"><span>' + escapeHtml(r.name) + '</span><span class="sr-mono">' + r.score + '/10</span></div>';
+    }).join('') + '<div class="sr-ratingavg sr-mono">\u00d8 ' + avg.toFixed(1) + '</div></div>';
+  } else ratingsSection += '<p class="sr-empty-hint">Noch keine Bewertungen.</p>';
+  ratingsSection += '</div>';
+
+  container.innerHTML =
+    '<div class="sr-screen">' +
+      '<div class="sr-topbar"><button class="sr-iconbtn" id="detailBack">' + iconSvg('chevronLeft', 20) + '</button><span style="width:36px"></span><span style="width:36px"></span></div>' +
+      '<div class="sr-scroll sr-detail">' +
+        '<div class="sr-detail-hero" style="--spine:' + color + '"><div class="sr-detail-thumb">' + thumb + '</div>' + sealBadgeHtml(avg) + '</div>' +
+        '<h1 class="sr-display sr-detail-title">' + escapeHtml(game.title) + '</h1>' +
+        categoryChipHtml(game.category) +
+        '<div class="sr-metaGrid">' + metaGrid + '</div>' +
+        expansionsSection + notesSection + ratingsSection +
+        '<div class="sr-detailactions" id="detailActions">' +
+          '<button class="sr-btn-ghost" id="detailEdit">' + iconSvg('pencil', 16) + ' Bearbeiten</button>' +
+          (detailConfirmDelete
+            ? '<div class="sr-confirmRow"><span>Wirklich l\u00f6schen?</span><button class="sr-btn-danger" id="detailDeleteYes">Ja</button><button class="sr-btn-ghost" id="detailDeleteNo">Nein</button></div>'
+            : '<button class="sr-btn-danger" id="detailDeleteAsk">' + iconSvg('trash', 16) + ' L\u00f6schen</button>') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  container.querySelector('#detailBack').addEventListener('click', function () { selectedId = null; detailEditing = false; detailConfirmDelete = false; renderApp(); });
+  container.querySelector('#detailEdit').addEventListener('click', function () { detailEditing = true; mountDetailScreen(container); });
+  if (detailConfirmDelete) {
+    container.querySelector('#detailDeleteYes').addEventListener('click', function () { deleteGameFromList(game.id); selectedId = null; detailConfirmDelete = false; renderApp(); });
+    container.querySelector('#detailDeleteNo').addEventListener('click', function () { detailConfirmDelete = false; mountDetailScreen(container); });
+  } else {
+    container.querySelector('#detailDeleteAsk').addEventListener('click', function () { detailConfirmDelete = true; mountDetailScreen(container); });
+  }
+}
+
+/* ---------- App-Shell ---------- */
+
+function renderApp() {
+  var r = root();
+  var screenHtml = '<div class="sr-screen-host" id="screenHost"></div>';
+  var tabbarHtml = '';
+  if (!selectedId) {
+    tabbarHtml =
+      '<div class="sr-tabbar">' +
+        '<button class="sr-tabbtn' + (tab === 'shelf' ? ' active' : '') + '" data-set-tab="shelf">' + iconSvg('grid', 20) + ' Regal</button>' +
+        '<button class="sr-tabbtn' + (tab === 'add' ? ' active' : '') + '" data-set-tab="add">' + iconSvg('plus', 20) + ' Hinzuf\u00fcgen</button>' +
+        '<button class="sr-tabbtn' + (tab === 'today' ? ' active' : '') + '" data-set-tab="today">' + iconSvg('dices', 20) + ' Heute</button>' +
+      '</div>';
+  }
+
+  r.innerHTML =
+    '<div class="sr-app"><div class="sr-phone"><div class="sr-island"></div>' + screenHtml + tabbarHtml + '</div></div>';
+
+  var host = document.getElementById('screenHost');
+  host.style.display = 'flex';
+  host.style.flexDirection = 'column';
+  host.style.flex = '1';
+  host.style.minHeight = '0';
+
+  if (!loaded) {
+    host.innerHTML = '<div class="sr-screen" style="align-items:center;justify-content:center">' + iconSvg('loader', 28, 'sr-spin') + '</div>';
+  } else if (selectedId) {
+    detailEditing = false; detailConfirmDelete = false;
+    mountDetailScreen(host);
+  } else if (tab === 'shelf') {
+    mountShelfScreen(host);
+  } else if (tab === 'add') {
+    mountAddScreen(host);
+  } else {
+    mountTodayScreen(host);
+  }
+
+  var tabbar = document.querySelector('.sr-tabbar');
+  if (tabbar) {
+    tabbar.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-set-tab]');
+      if (!btn) return;
+      tab = btn.getAttribute('data-set-tab');
+      renderApp();
+    });
+  }
+}
+
+loadGames();
+renderApp();
+</script>
+</body></html>
